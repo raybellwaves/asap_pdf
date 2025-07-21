@@ -1,24 +1,16 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "backports.tarfile>=1.2.0",
 #     "beautifulsoup4>=4.13.3",
-#     "importlib-metadata>=8.0.0",
-#     "inflect>=7.3.1",
-#     "jaraco.collections>=5.1.0",
 #     "lxml>=5.3.1",
-#     "packaging>=24.2",
-#     "pandas>=2.2.3",
-#     "pip-chill>=1.0.3",
-#     "platformdirs>=4.2.2",
 #     "PyMuPDF>=1.25.5",
-#     "pytest>=8.3.5",
+#     "requests>=2.31.0",
 #     "selenium>=4.34.2",
 #     "tldextract>=5.1.3",
-#     "tomli>=2.0.1",
 #     "tqdm>=4.67.1",
 # ]
 # ///
+# Example: uv run crawler.py https://www.python.org output.csv
 import argparse
 import csv
 import io
@@ -94,16 +86,6 @@ def get_url(url, timeout=90, use_webdriver=False):
         return atags
 
 
-def get_config(url):
-    with open("config.json", "r") as f:
-        config = json.load(f)
-
-    try:
-        return config[url]
-    except KeyError:
-        raise Exception("URL provided not in config.json")
-
-
 def parse_robots_txt(url, manual_crawl_delay):
     # Parse the site's robots.txt file
     rp = urllib.robotparser.RobotFileParser()
@@ -120,7 +102,7 @@ def parse_robots_txt(url, manual_crawl_delay):
     return sitemap, manual_crawl_delay
 
 
-def parse_sitemap(sitemap):
+def parse_sitemap(sitemap, manual_crawl_delay):
     r = requests.get(sitemap)
     soup = BeautifulSoup(r.text, "xml")
     more_site_maps = [site.text for site in soup.find_all("loc")]
@@ -369,22 +351,30 @@ if __name__ == "__main__":
     parser.add_argument(
         "output_path", help="Path where a CSV with PDF information will be saved"
     )
+    parser.add_argument(
+        "--depth", type=int, default=3, help="Maximum crawling depth (default: 3)"
+    )
+    parser.add_argument(
+        "--use-sitemap", action="store_true", help="Use sitemap for crawling"
+    )
+    parser.add_argument(
+        "--use-webdriver", action="store_true", help="Use Selenium webdriver"
+    )
+    parser.add_argument(
+        "--allow-subdomains", nargs="*", help="List of allowed subdomains"
+    )
     args = parser.parse_args()
 
-    config = get_config(args.url)
-    allow_list = config["allow_list"]
-    allowable_subdomains = config.get("allow_subdomains")
-    use_sitemap = config["use_sitemap"]
-    depth = config["depth"]
-    use_webdriver = config.get("use_webdriver", False)
+    # Extract domain from the starting URL to create allow list
+    extracted = tldextract.extract(args.url)
+    allow_list = [args.url]
+    allowable_domains = [extracted.registered_domain]
+    allowable_subdomains = args.allow_subdomains
 
-    allowable_domains = [
-        tldextract.extract(link).registered_domain for link in allow_list
-    ]
     sitemap, manual_crawl_delay = parse_robots_txt(args.url, args.delay)
 
-    if use_sitemap:
-        all_pages = parse_sitemap(sitemap)
+    if args.use_sitemap:
+        all_pages = parse_sitemap(sitemap, manual_crawl_delay)
         tqdm.write(f"Pages found from sitemap: {len(all_pages)}")
 
         pdfs = get_all_pages(all_pages, delay=manual_crawl_delay)
@@ -396,8 +386,8 @@ if __name__ == "__main__":
             allowable_domains,
             allowable_subdomains=allowable_subdomains,
             delay=manual_crawl_delay,
-            max_depth=depth,
-            use_webdriver=use_webdriver,
+            max_depth=args.depth,
+            use_webdriver=args.use_webdriver,
         )
 
     tqdm.write(f"PDFs found: {len(pdfs)}")
