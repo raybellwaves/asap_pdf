@@ -10,7 +10,14 @@
 #     "tqdm>=4.67.1",
 # ]
 # ///
-# Example:
+# Powershell Example:
+"""
+uv run https://raw.githubusercontent.com/raybellwaves/asap_pdf/refs/heads/uv-inline-deps/python_components/crawler/crawler.py `
+    https://www.whitman.edu/academics/departments-and-programs/mathematics `
+    output.csv `
+    --depth 1
+"""
+# Linux/MacOS Example:
 """
 uv run https://raw.githubusercontent.com/raybellwaves/asap_pdf/refs/heads/uv-inline-deps/python_components/crawler/crawler.py \
     https://www.whitman.edu/academics/departments-and-programs/mathematics \
