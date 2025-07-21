@@ -10,7 +10,7 @@
 #     "tqdm>=4.67.1",
 # ]
 # ///
-# Example: uv run crawler.py https://www.python.org output.csv
+# Example: uv run https://raw.githubusercontent.com/raybellwaves/asap_pdf/refs/heads/uv-inline-deps/python_components/crawler/crawler.py https://www.python.org output.csv
 import argparse
 import csv
 import io
